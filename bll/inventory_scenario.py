@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from .scenario_interface import ScenarioInterface
+from scenario_interface import ScenarioInterface
 from typing import Dict, Any
 
 class InventoryScenario(ScenarioInterface):
@@ -36,8 +36,8 @@ class InventoryScenario(ScenarioInterface):
         abc_df['cum_share'] = abc_df['share'].cumsum()
 
         def get_abc(share):
-            if share <= 0.50: return 'A'
-            if share <= 0.80: return 'B'
+            if share <= 0.80: return 'A'
+            if share <= 0.95: return 'B'
             return 'C'
         
         abc_df['abc_category'] = abc_df['cum_share'].apply(get_abc)
@@ -105,7 +105,6 @@ class InventoryScenario(ScenarioInterface):
             abc_cat = row['abc_category']
 
             p_series = ts_data[ts_data[m['id']] == p_id][m['volume']]
-
             method = methods_config.get(abc_cat, 'naive')
             forecast = self._get_forecast(p_series, method)
             ss = self._calculate_safety_stock(p_series)
@@ -117,7 +116,6 @@ class InventoryScenario(ScenarioInterface):
                 'safety_stock': round(ss, 2),
                 'total_need': round(forecast + ss, 2)
             })
-
 
 
         self.results['analysis_table'] = analysis_df

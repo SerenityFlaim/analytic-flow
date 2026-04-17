@@ -20,6 +20,5 @@ class ScenarioInterface(ABC):
     def execute(self):
         pass
 
-    @abstractmethod
     def get_results(self):
         return self.results
