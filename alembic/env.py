@@ -5,7 +5,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from dotenv import load_dotenv
-from database.models import Base, User, Project, Dataset, Scenario, UserScenario, AnalysisResult
+from dal.models import Base, User, Project, Dataset, Scenario, UserScenario, AnalysisResult
 
 load_dotenv()
 

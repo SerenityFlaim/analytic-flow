@@ -16,8 +16,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(512), nullable=False)
-    surname: Mapped[str] = mapped_column(String(512))
-    patronymic: Mapped[str] = mapped_column(String(512))
+    surname: Mapped[str] = mapped_column(String(512), nullable=True)
+    patronymic: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")
 
 
@@ -27,7 +27,7 @@ class Project(Base):
     project_id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(TEXT)
+    description: Mapped[str] = mapped_column(TEXT, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")
 
 class Dataset(Base):
@@ -43,7 +43,7 @@ class Scenario(Base):
 
     scenario_id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     title: Mapped[str] = mapped_column(String(100), unique=True)
-    description: Mapped[str] = mapped_column(TEXT)
+    description: Mapped[str] = mapped_column(TEXT, nullable=True)
 
 class UserScenario(Base):
     __tablename__ = "user_scenarios"
@@ -65,5 +65,5 @@ class AnalysisResult(Base):
     results_id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     user_scenario_id: Mapped[int] = mapped_column(ForeignKey("user_scenarios.user_scenario_id", ondelete="CASCADE"))
     result_json: Mapped[dict] = mapped_column()
-    metrics_json: Mapped[dict] = mapped_column()
+    metrics_json: Mapped[dict] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")

@@ -29,6 +29,8 @@ class UserRepository:
         return self.session.execute(statement).scalars().all()
     
     def update(self, user_id: int, **values) -> None:
+        if not values:
+            return
         statement = update(User).where(User.user_id == user_id).values(**values)
         self.session.execute(statement)
 

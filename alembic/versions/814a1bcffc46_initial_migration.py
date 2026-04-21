@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 540bd823ca7e
+Revision ID: 814a1bcffc46
 Revises: 
-Create Date: 2026-04-20 18:46:52.673178
+Create Date: 2026-04-21 14:18:28.149539
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '540bd823ca7e'
+revision: str = '814a1bcffc46'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,7 +24,7 @@ def upgrade() -> None:
     op.create_table('scenarios',
     sa.Column('scenario_id', sa.Integer(), sa.Identity(always=True), nullable=False),
     sa.Column('title', sa.String(length=100), nullable=False),
-    sa.Column('description', sa.TEXT(), nullable=False),
+    sa.Column('description', sa.TEXT(), nullable=True),
     sa.PrimaryKeyConstraint('scenario_id'),
     sa.UniqueConstraint('title')
     )
@@ -33,8 +33,8 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.Column('name', sa.String(length=512), nullable=False),
-    sa.Column('surname', sa.String(length=512), nullable=False),
-    sa.Column('patronymic', sa.String(length=512), nullable=False),
+    sa.Column('surname', sa.String(length=512), nullable=True),
+    sa.Column('patronymic', sa.String(length=512), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
     sa.PrimaryKeyConstraint('user_id'),
     sa.UniqueConstraint('email')
@@ -51,7 +51,7 @@ def upgrade() -> None:
     sa.Column('project_id', sa.Integer(), sa.Identity(always=True), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.TEXT(), nullable=False),
+    sa.Column('description', sa.TEXT(), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('project_id')
@@ -74,7 +74,7 @@ def upgrade() -> None:
     sa.Column('results_id', sa.Integer(), sa.Identity(always=True), nullable=False),
     sa.Column('user_scenario_id', sa.Integer(), nullable=False),
     sa.Column('result_json', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('metrics_json', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('metrics_json', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
     sa.ForeignKeyConstraint(['user_scenario_id'], ['user_scenarios.user_scenario_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('results_id')
