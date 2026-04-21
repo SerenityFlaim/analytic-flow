@@ -13,8 +13,8 @@ class User(Base):
     __tablename__ = "users"
 
     user_id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    email: Mapped[int] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[int] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(512), nullable=False)
     surname: Mapped[str] = mapped_column(String(512))
     patronymic: Mapped[str] = mapped_column(String(512))
