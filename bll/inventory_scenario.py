@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from scenario_interface import ScenarioInterface
+# from scenario_interface import ScenarioInterface
+from .scenario_interface import ScenarioInterface
 from typing import Dict, Any
 
 class InventoryScenario(ScenarioInterface):

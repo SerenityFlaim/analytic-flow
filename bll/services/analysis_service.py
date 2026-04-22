@@ -2,14 +2,13 @@ import pandas as pd
 from typing import Dict, Any
 from dal.repositories import UserScenarioRepository, AnalysisResultRepository
 from bll.services.dataset_service import DatasetService
-from scenario_interface import ScenarioInterface
+from bll.scenario_interface import ScenarioInterface
 
 class AnalysisService:
     def __init__(self, us_repo: UserScenarioRepository, result_repo: AnalysisResultRepository, dataset_service: DatasetService):
         self.us_repo = us_repo
         self.result_repo = result_repo
         self.dataset_service = dataset_service
-        self.strategy
 
 
     def run_analysis(self, strategy: ScenarioInterface) -> Dict[str, Any]:
