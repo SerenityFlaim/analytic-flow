@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-# from scenario_interface import ScenarioInterface
 from .scenario_interface import ScenarioInterface
 from typing import Dict, Any
 
@@ -10,12 +9,12 @@ class InventoryScenario(ScenarioInterface):
     def validate_config(self) -> bool:
         required_fields = ['id', 'date', 'volume', 'revenue']
         mapping = self.config.get('mapping', {})
-        return all(field in mapping for field in required_fields)
+        ss_params = self.config.get('ss_params', {})
+        return all(field in mapping for field in required_fields) and 'lead_time' in ss_params
     
     
     def preprocess(self):
         m = self.config['mapping']
-
         self.df[m['date']] = pd.to_datetime(self.df[m['date']])
         self.df[m['volume']] = pd.to_numeric(self.df[m['volume']])
         self.df[m['revenue']] = pd.to_numeric(self.df[m['revenue']])
@@ -28,15 +27,15 @@ class InventoryScenario(ScenarioInterface):
 
     def _calculate_abc(self, data: pd.DataFrame) -> pd.DataFrame:
         m = self.config['mapping']
-
         abc_df = data.groupby(m['id'])[m['revenue']].sum().reset_index()
         abc_df = abc_df.sort_values(by=m['revenue'], ascending=False)
 
-        abc_df = abc_df.rename(columns={m['revenue']: 'abc_revenue'})
-
-        total_rev = abc_df['abc_revenue'].sum()
-        abc_df['share'] = abc_df['abc_revenue'] / total_rev
-        abc_df['cum_share'] = abc_df['share'].cumsum()
+        # abc_df = abc_df.rename(columns={m['revenue']: 'abc_revenue'})
+        # total_rev = abc_df['abc_revenue'].sum()
+        # abc_df['share'] = abc_df['abc_revenue'] / total_rev
+        # abc_df['cum_share'] = abc_df['share'].cumsum()
+        total_rev = abc_df[m['revenue']].sum()
+        abc_df['cum_share'] = abc_df[m['revenue']].cumsum() / total_rev
 
         def get_abc(share):
             if share <= 0.80: return 'A'
@@ -44,13 +43,14 @@ class InventoryScenario(ScenarioInterface):
             return 'C'
         
         abc_df['abc_category'] = abc_df['cum_share'].apply(get_abc)
-        return abc_df[[m['id'], 'abc_revenue', 'abc_category']]
+        return abc_df[[m['id'], 'abc_category', m['revenue']]]
     
     
     def _calculate_xyz(self, data: pd.DataFrame) -> pd.DataFrame:
         m = self.config['mapping']
 
-        xyz_df = data.groupby(m['id'])[m['volume']].agg(['mean', 'std']).reset_index()
+        ts = data.set_index(m['date']).groupby(m['id'])[m['volume']].resample('ME').sum().reset_index()
+        xyz_df = ts.groupby(m['id'])[m['volume']].agg(['mean', 'std']).reset_index()
         xyz_df['xyz_cv'] = xyz_df['std'] / xyz_df['mean'] #.fillna(0)
 
         def get_xyz(cv):
@@ -58,17 +58,17 @@ class InventoryScenario(ScenarioInterface):
             if cv <= 0.25: return 'Y'
             return 'Z'
         
-        xyz_df['xyz_category'] = xyz_df['xyz_cv'].apply(get_xyz)
-        return xyz_df[[m['id'], 'xyz_cv', 'xyz_category']]
+        xyz_df['xyz_category'] = xyz_df['xyz_cv'].apply(get_xyz).fillna('Z')
+        return xyz_df[[m['id'], 'xyz_category', 'xyz_cv']]
     
     
     def _get_forecast(self, series: pd.Series, method: str) -> float:
-        if len(series) < 2:
+        if len(series) < 3 or method == 'naive':
             return series.iloc[-1] if not series.empty else 0
         
         try:
             if method == 'holt':
-                model = ExponentialSmoothing(series, trend='add').fit()
+                model = ExponentialSmoothing(series, trend='add', seasonal=None).fit()
                 return max(0, model.forecast(1).iloc[0])
             elif method == 'sma':
                 return series.tail(3).mean()
@@ -78,28 +78,30 @@ class InventoryScenario(ScenarioInterface):
             return series.iloc[-1]
         
         
-    def _calculate_safety_stock(self, series: pd.Series) -> float:
-        params = self.config.get('params', {})
-        z = params.get('z_score', 1.65)
-        lt = params.get('lead_time', 7)
-        return z * series.std() * np.sqrt(lt)
+    def _calculate_safety_stock(self, series: pd.Series, z_score: float, lead_time: float) -> float:
+        sigma = series.std()
+        if pd.isna(sigma) or sigma == 0:
+            return 0.0
+        ss = z_score * sigma * np.sqrt(lead_time)
+        return round(ss, 2)
     
     
     def execute(self) -> Dict[str, Any]:
         if not self.validate_config():
             raise ValueError("Неверная конфигурация маппинга")
         
+
+        m = self.config['mapping']
+        ss_p = self.config.get('ss_params', {'z_score': 1.65, 'lead_time': 1.0})
         self.preprocess()
 
         abc_res = self._calculate_abc(self.df)
         xyz_res = self._calculate_xyz(self.df)
 
-        m = self.config['mapping']
         analysis_df = pd.merge(abc_res, xyz_res, on=m['id'])
         analysis_df['final_category'] = analysis_df['abc_category'] + analysis_df['xyz_category']
 
         ts_data = self.df.set_index(m['date']).groupby(m['id'])[m['volume']].resample('ME').sum().reset_index()
-
         methods_config = self.config.get('methods', {'A': 'holt', 'B': 'sma', 'C': 'naive'})
 
         report_data = []
@@ -109,14 +111,16 @@ class InventoryScenario(ScenarioInterface):
 
             p_series = ts_data[ts_data[m['id']] == p_id][m['volume']]
             method = methods_config.get(abc_cat, 'naive')
+
+
             forecast = self._get_forecast(p_series, method)
-            ss = self._calculate_safety_stock(p_series)
+            ss = self._calculate_safety_stock(p_series, ss_p['z_score'], ss_p['lead_time'])
 
             report_data.append({
                 'item_id': p_id,
                 'category': row['final_category'],
                 'forecast': round(forecast, 2),
-                'safety_stock': round(ss, 2),
+                'safety_stock': ss,
                 'total_need': round(forecast + ss, 2)
             })
 
