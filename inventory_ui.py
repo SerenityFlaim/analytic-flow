@@ -56,16 +56,6 @@ def render_inventory_ui(ds_service, an_service):
         "ss_params": {"z_score": z_score, "lead_time": lead_time}
     }
 
-
-
-    # current_config = {
-    #     "mapping": mapping,
-    #     "abc_threshold": abc_threshold,
-    #     "z_value": z_value,
-    #     "lead_time": lead_time
-    #     # "cleaning": {"fill_voids": "zeros"}
-    # }
-
     st.divider()
     st.subheader("3. Параметры алгоритмов")
     with st.expander("Настройки классификации и очистки"):
@@ -76,12 +66,6 @@ def render_inventory_ui(ds_service, an_service):
         abc_threshold = st.slider("Граница группы А", 0, 100, 80)
 
     if st.button("Выполнить расчёт", type="primary", use_container_width=True):
-        # config = {
-        #     "mapping": mapping, 
-        #     "cleaning": {"fill_voids": fill_val},
-        #     "abc_threshold": abc_threshold / 100,
-        #     "methods": {"A": "holt", "B": "sma", "C": "naive"}
-        # }
         current_config["abc_threshold"] = abc_threshold
         current_config["cleaning"] = {"fill_voids": fill_val}
 
@@ -149,11 +133,7 @@ def render_inventory_ui(ds_service, an_service):
                             project_id=active_project_id,
                             dataset_id=selected_ds_id,
                             scenario_id=2,
-                            config={
-                                "mapping": mapping,
-                                "methods": methods_config,
-                                "ss_params": {"z_score": z_score, "lead_time": lead_time}
-                            }
+                            config=current_config
                         )
 
                         an_service.save_analysis_result(us_id, res)
