@@ -32,8 +32,10 @@ class InventoryScenario(ScenarioInterface):
         abc_df = data.groupby(m['id'])[m['revenue']].sum().reset_index()
         abc_df = abc_df.sort_values(by=m['revenue'], ascending=False)
 
-        total_rev = abc_df[m['revenue']].sum()
-        abc_df['share'] = abc_df[m['revenue']] / total_rev
+        abc_df = abc_df.rename(columns={m['revenue']: 'abc_revenue'})
+
+        total_rev = abc_df['abc_revenue'].sum()
+        abc_df['share'] = abc_df['abc_revenue'] / total_rev
         abc_df['cum_share'] = abc_df['share'].cumsum()
 
         def get_abc(share):
@@ -42,22 +44,22 @@ class InventoryScenario(ScenarioInterface):
             return 'C'
         
         abc_df['abc_category'] = abc_df['cum_share'].apply(get_abc)
-        return abc_df[[m['id'], 'abc_category']]
+        return abc_df[[m['id'], 'abc_revenue', 'abc_category']]
     
     
     def _calculate_xyz(self, data: pd.DataFrame) -> pd.DataFrame:
         m = self.config['mapping']
 
         xyz_df = data.groupby(m['id'])[m['volume']].agg(['mean', 'std']).reset_index()
-        xyz_df['cv'] = xyz_df['std'] / xyz_df['mean'] #.fillna(0)
+        xyz_df['xyz_cv'] = xyz_df['std'] / xyz_df['mean'] #.fillna(0)
 
         def get_xyz(cv):
             if cv <= 0.10: return 'X'
             if cv <= 0.25: return 'Y'
             return 'Z'
         
-        xyz_df['xyz_category'] = xyz_df['cv'].apply(get_xyz)
-        return xyz_df[[m['id'], 'xyz_category']]
+        xyz_df['xyz_category'] = xyz_df['xyz_cv'].apply(get_xyz)
+        return xyz_df[[m['id'], 'xyz_cv', 'xyz_category']]
     
     
     def _get_forecast(self, series: pd.Series, method: str) -> float:
@@ -121,6 +123,11 @@ class InventoryScenario(ScenarioInterface):
 
         self.results['analysis_table'] = analysis_df
         self.results['forecast_report'] = pd.DataFrame(report_data)
-        self.results['summary'] = analysis_df['final_category'].value_counts().to_dict()
+        self.results['summary'] = {
+            'total_items': len(analysis_df),
+            'abc_counts': abc_res['abc_category'].value_counts().to_dict(),
+            'xyz_counts': xyz_res['xyz_category'].value_counts().to_dict(),
+            'final_categories': analysis_df['final_category'].value_counts().to_dict()
+        }
 
         return self.results
