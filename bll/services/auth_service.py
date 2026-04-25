@@ -23,13 +23,14 @@ class AuthService:
             raise ValueError("Пользователь с таким email уже существует.")
         
         hashed_password = self._hash_password(password)
-
-        return self.user_repo.create(
+        user = self.user_repo.create(
             email = email,
             password_hash = hashed_password,
             name = name,
             **kwargs
         )
+        self.user_repo.session.commit()
+        return user
     
     def login(self, email: str, password: str) -> User:
         user = self.user_repo.get_by_email(email)

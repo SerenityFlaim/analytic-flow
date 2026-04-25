@@ -3,11 +3,11 @@ import pandas as pd
 import plotly.express as px
 from bll.inventory_scenario import InventoryScenario
 
-def render_inventory_ui(ds_service, an_service):
+def render_inventory_ui(ds_service, an_service, user_id: int):
     st.title("📦 Настройка инвентарного анализа")
 
     st.subheader("1. Подготовка данных")
-    datasets = ds_service.get_user_datasets(user_id=2) #пока авторизации нет хардкодим
+    datasets = ds_service.get_user_datasets(user_id=user_id)
     ds_options = {d.dataset_id: d.file_name for d in datasets}
 
     selected_ds_id = st.selectbox("Выберите датасет для анализа",
@@ -129,7 +129,7 @@ def render_inventory_ui(ds_service, an_service):
                 else:
                     try:
                         us_id = an_service.save_scenario_settings(
-                            user_id=2,  # Пока хардкод
+                            user_id=user_id,
                             project_id=active_project_id,
                             dataset_id=selected_ds_id,
                             scenario_id=2,
