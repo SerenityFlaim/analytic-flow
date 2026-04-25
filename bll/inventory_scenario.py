@@ -27,19 +27,19 @@ class InventoryScenario(ScenarioInterface):
 
     def _calculate_abc(self, data: pd.DataFrame) -> pd.DataFrame:
         m = self.config['mapping']
+
+        a_threshold = self.config.get('abc_threshold', 80) / 100
+
         abc_df = data.groupby(m['id'])[m['revenue']].sum().reset_index()
         abc_df = abc_df.sort_values(by=m['revenue'], ascending=False)
-
-        # abc_df = abc_df.rename(columns={m['revenue']: 'abc_revenue'})
-        # total_rev = abc_df['abc_revenue'].sum()
-        # abc_df['share'] = abc_df['abc_revenue'] / total_rev
-        # abc_df['cum_share'] = abc_df['share'].cumsum()
         total_rev = abc_df[m['revenue']].sum()
         abc_df['cum_share'] = abc_df[m['revenue']].cumsum() / total_rev
 
+        b_threshold = a_threshold + 0.15
+
         def get_abc(share):
-            if share <= 0.80: return 'A'
-            if share <= 0.95: return 'B'
+            if share <= a_threshold: return 'A'
+            if share <= b_threshold: return 'B'
             return 'C'
         
         abc_df['abc_category'] = abc_df['cum_share'].apply(get_abc)
@@ -51,7 +51,7 @@ class InventoryScenario(ScenarioInterface):
 
         ts = data.set_index(m['date']).groupby(m['id'])[m['volume']].resample('ME').sum().reset_index()
         xyz_df = ts.groupby(m['id'])[m['volume']].agg(['mean', 'std']).reset_index()
-        xyz_df['xyz_cv'] = xyz_df['std'] / xyz_df['mean'] #.fillna(0)
+        xyz_df['xyz_cv'] = (xyz_df['std'] / xyz_df['mean']).replace([np.inf, -np.inf], np.nan).fillna(1.0) #.fillna(0)
 
         def get_xyz(cv):
             if cv <= 0.10: return 'X'
@@ -74,7 +74,8 @@ class InventoryScenario(ScenarioInterface):
                 return series.tail(3).mean()
             else:
                 return series.iloc[-1]
-        except:
+        except Exception as ex:
+            print(f"Forecast error for method={method}: {ex}")
             return series.iloc[-1]
         
         

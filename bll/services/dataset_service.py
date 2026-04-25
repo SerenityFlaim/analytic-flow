@@ -37,11 +37,13 @@ class DatasetService:
             os.remove(file_path)
             raise ValueError(f"Ошибка чтения файла. Возможно, он поврежден или имеет неверную кодировку: {ex}")
         
-        return self.dataset_repo.create(
+        result = self.dataset_repo.create(
             user_id=user_id, 
             file_path=file_path,
             file_name=filename
         )
+        self.dataset_repo.session.commit()
+        return result
     
     def get_user_datasets(self, user_id: int) -> Sequence[Dataset]:
         return self.dataset_repo.get_all_by_user(user_id)

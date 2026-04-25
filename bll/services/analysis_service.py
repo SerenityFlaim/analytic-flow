@@ -25,6 +25,7 @@ class AnalysisService:
         scenario_id=scenario_id,
         config_json=config
         )
+        self.us_repo.session.commit()
         return user_scenario.user_scenario_id
     
     def save_analysis_result(self, user_scenario_id: int, raw_results: Dict[str, Any]) -> int:
@@ -40,6 +41,7 @@ class AnalysisService:
             result_json=processed_results,
             metrics_json=raw_results.get('summary')
         )
+        self.result_repo.session.commit()
         return analysis_result_record.results_id
     
     def delete_result(self, results_id: int) -> None:
