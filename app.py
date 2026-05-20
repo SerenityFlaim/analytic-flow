@@ -43,6 +43,13 @@ if 'page' not in st.session_state:
     st.session_state.page = 'hub'
 if 'current_project' not in st.session_state:
     st.session_state.current_project = None
+if 'confirm_delete_project' not in st.session_state:
+    st.session_state.confirm_delete_project = False
+if 'proj_form_key' not in st.session_state:
+    st.session_state.proj_form_key = 0
+if 'upd_form_key' not in st.session_state:
+    st.session_state.upd_form_key = 0
+    
 
 def navigate_to(page_name):
     st.session_state.page = page_name
@@ -72,14 +79,66 @@ with st.sidebar:
             format_func=lambda x: project_titles[x]
         )
         st.session_state.current_project = selected_proj_id
+
+        with st.expander("⚙️ Управление проектом"):
+            new_title = st.text_input(
+                "Новое название",
+                value=project_titles[selected_proj_id],
+                key=f"rename_input_{st.session_state.upd_form_key}"
+            )
+            if st.button("Переименовать", use_container_width=True):
+                if new_title.strip() == "":
+                    st.error("Название не может быть пустым.")
+                elif new_title.strip() == project_titles[selected_proj_id]:
+                    st.info("Название не изменилось.")
+                else:
+                    try:
+                        proj_service.update_project(selected_proj_id, new_title.strip())
+                        st.session_state.upd_form_key += 1
+                        st.success("Проект переименован!")
+                        st.rerun()
+                    except ValueError as ex:
+                        st.error(str(ex))
+
+            st.divider()
+
+            if not st.session_state.confirm_delete_project:
+                if st.button(
+                    "🗑️ Удалить проект",
+                    use_container_width=True,
+                    type="secondary"
+                ):
+                    st.session_state.confirm_delete_project = True
+                    st.rerun()
+            else:
+                st.warning(
+                    f"Удалить \"{project_titles[selected_proj_id]}\"?"
+                    "Все сохранённые конфигурации проекта будут удалены."
+                )
+                col_yes, col_no = st.columns(2)
+                with col_yes:
+                    if st.button("Удалить", type="primary", use_container_width=True):
+                        proj_service.delete_project(selected_proj_id)
+                        st.session_state.current_project = None
+                        st.session_state.confirm_delete_project = False
+                        if st.session_state.page != 'hub':
+                            st.session_state.page = 'hub'
+                        st.rerun()
+                    with col_no:
+                        if st.button ("Отмена", use_container_width=True):
+                            st.session_state.confirm_delete_project = False
+                            st.rerun()
+
     else:
         st.info("У вас нет проектов. Создайте первый!")
         selected_proj_id = None
         st.session_state.current_project = None
 
+    
+
     with st.expander("➕ Новый проект"):
-        new_proj_title = st.text_input("Название проекта", key="new_proj_title")
-        new_proj_desc = st.text_area("Описание (необязательно)", key="new_proj_desc")
+        new_proj_title = st.text_input("Название проекта", key=f"new_proj_title_{st.session_state.proj_form_key}")
+        new_proj_desc = st.text_area("Описание (необязательно)", key=f"new_proj_desc_{st.session_state.proj_form_key}")
         if st.button("Создать проект"):
             if new_proj_title.strip():
                 proj_service.create_project(
@@ -87,6 +146,7 @@ with st.sidebar:
                     title=new_proj_title,
                     description=new_proj_desc
                 )
+                st.session_state.proj_form_key += 1
                 st.success("Проект создан!")
                 st.rerun()
             else:
