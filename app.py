@@ -47,8 +47,6 @@ if 'confirm_delete_project' not in st.session_state:
     st.session_state.confirm_delete_project = False
 if 'proj_form_key' not in st.session_state:
     st.session_state.proj_form_key = 0
-if 'upd_form_key' not in st.session_state:
-    st.session_state.upd_form_key = 0
     
 
 def navigate_to(page_name):
@@ -84,7 +82,7 @@ with st.sidebar:
             new_title = st.text_input(
                 "Новое название",
                 value=project_titles[selected_proj_id],
-                key=f"rename_input_{st.session_state.upd_form_key}"
+                key=f"rename_input_{selected_proj_id}"
             )
             if st.button("Переименовать", use_container_width=True):
                 if new_title.strip() == "":
@@ -94,7 +92,6 @@ with st.sidebar:
                 else:
                     try:
                         proj_service.update_project(selected_proj_id, new_title.strip())
-                        st.session_state.upd_form_key += 1
                         st.success("Проект переименован!")
                         st.rerun()
                     except ValueError as ex:

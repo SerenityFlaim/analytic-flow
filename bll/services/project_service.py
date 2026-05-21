@@ -9,7 +9,9 @@ class ProjectService:
     def create_project(self, user_id: int, title: str, description: str = "") -> Project:
         if not title.strip():
             raise ValueError("Название проекта не может быть пустым.")
-        return self.project_repo.create(user_id, title, description)
+        project = self.project_repo.create(user_id, title, description)
+        self.project_repo.session.commit()
+        return project
     
     def get_user_projects(self, user_id: int) -> Sequence[Project]:
         return self.project_repo.get_all_by_user(user_id)
@@ -30,6 +32,8 @@ class ProjectService:
             update_data['description'] = description
 
         self.project_repo.update(project_id, **update_data)
+        self.project_repo.session.commit()
 
     def delete_project(self, project_id: int):
         self.project_repo.delete(project_id)
+        self.project_repo.session.commit()
