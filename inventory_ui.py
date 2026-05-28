@@ -3,26 +3,52 @@ import pandas as pd
 import plotly.express as px
 from bll.inventory_scenario import InventoryScenario
 
+def _col_index(cols, col_name):
+    try:
+        return cols.index(col_name)
+    except ValueError:
+        return 0
+
 def render_inventory_ui(ds_service, an_service, user_id: int):
     st.title("📦 Настройка инвентарного анализа")
+
+    lc = st.session_state.get('loaded_config')
+    lc_mapping = lc.get('mapping', {}) if lc else {}
+    lc_methods = lc.get('methods', {}) if lc else {}
+    lc_ss = lc.get('ss_params', {}) if lc else {}
+    lc_cleaning = lc.get('cleaning', {}) if lc else {}
+    loaded_dataset_id = st.session_state.get('loaded_dataset_id')
+
+    if lc:
+        st.info("✅ Загружен сохранённый сценарий. Параметры предзаполнены — вы можете их изменить перед запуском.")
 
     st.subheader("1. Подготовка данных")
     datasets = ds_service.get_user_datasets(user_id=user_id)
     ds_options = {d.dataset_id: d.file_name for d in datasets}
 
-    selected_ds_id = st.selectbox("Выберите датасет для анализа",
-                                  options=list(ds_options.keys()),
-                                  format_func=lambda x: ds_options[x])
-    
+    ds_ids = list(ds_options.keys())
+    default_ds_index = ds_ids.index(loaded_dataset_id) if (loaded_dataset_id and loaded_dataset_id in ds_ids) else 0
+
+    selected_ds_id = st.selectbox(
+        "Выберите датасет для анализа",
+        options=ds_ids,
+        format_func=lambda x: ds_options[x],
+        index=default_ds_index
+    )
+
     df = ds_service.get_dataframe(selected_ds_id)
     cols = df.columns.tolist()
 
     st.info("Укажите, какие столбцы соответствуют требуемым параметрам")
     c1, c2, c3, c4 = st.columns(4)
-    with c1: m_id = st.selectbox("ID товара / SKU", cols)
-    with c2: m_date = st.selectbox("Дата транзакции", cols)
-    with c3: m_vol = st.selectbox("Количество (Объём)", cols)
-    with c4: m_rev = st.selectbox("Выручка (Сумма)", cols)
+    with c1: 
+        m_id = st.selectbox("ID товара / SKU", cols, index=_col_index(cols, lc_mapping.get('id', cols[0])))
+    with c2: 
+        m_date = st.selectbox("Дата транзакции", cols, index=_col_index(cols, lc_mapping.get('date', cols[0])))
+    with c3: 
+        m_vol = st.selectbox("Количество (Объём)", cols, index=_col_index(cols, lc_mapping.get('volume', cols[0])))
+    with c4: 
+        m_rev = st.selectbox("Выручка (Сумма)", cols, index=_col_index(cols, lc_mapping.get('revenue', cols[0])))
 
     mapping = {"id": m_id, "date": m_date, "volume": m_vol, "revenue": m_rev}
 
@@ -30,24 +56,49 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
 
     st.subheader("2. Параметры расчета")
     col_ss1, col_ss2 = st.columns(2)
+
+    z_mapping = {0.80: 0.84, 0.85: 1.04, 0.90: 1.28, 0.95: 1.65, 0.99: 2.33}
+    z_reverse = {v: k for k, v in z_mapping.items()}
+    sl_options = [0.80, 0.85, 0.90, 0.95, 0.99]
+
+    default_z = lc_ss.get('z_score', 1.65)
+    default_sl = z_reverse.get(default_z, 0.95)
     
     with col_ss1:
         st.write("**Страховой запас (Safety Stock)**")
-        lead_time = st.number_input("Lead Time (Время поставки, мес.)", min_value=0.1, value=1.0, step=0.1)
+        lead_time = st.number_input(
+            "Lead Time (Время поставки, мес.)",
+            min_value=0.1,
+            value=float(lc_ss.get('lead_time', 1.0)),
+            step=0.1
+        )
         service_level = st.select_slider(
             "Уровень сервиса",
-            options=[0.80, 0.85, 0.90, 0.95, 0.99],
-            value=0.95,
+            options=sl_options,
+            value=default_sl,
             help="Влияет на коэффициент Z"
         )
-        z_mapping = {0.80: 0.84, 0.85: 1.04, 0.90: 1.28, 0.95: 1.65, 0.99: 2.33}
         z_score = z_mapping[service_level]
+
+    method_options = ["holt", "sma", "naive"]
 
     with col_ss2:
         st.write("**Методы прогнозирования**")
-        method_a = st.selectbox("Метод для группы A", ["holt", "sma", "naive"], index=0)
-        method_b = st.selectbox("Метод для группы B", ["holt", "sma", "naive"], index=1)
-        method_c = st.selectbox("Метод для группы C", ["holt", "sma", "naive"], index=2)
+        method_a = st.selectbox(
+            "Метод для группы A", 
+            method_options,
+            index=method_options.index(lc_methods.get('A', 'holt'))
+        )
+        method_b = st.selectbox(
+            "Метод для группы B", 
+            method_options,
+            index=method_options.index(lc_methods.get('B', 'sma'))
+        )
+        method_c = st.selectbox(
+            "Метод для группы C",
+            method_options,
+            index=method_options.index(lc_methods.get('C', 'naive'))
+        )
 
     current_config = {
         "mapping": mapping,
@@ -57,13 +108,21 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
     }
 
     st.divider()
+    
     st.subheader("3. Параметры алгоритмов")
+    fill_options = ["zeros", "mean"]
+    default_fill = lc_cleaning.get('fill_voids', 'zeros')
+
     with st.expander("Настройки классификации и очистки"):
-        col_cl1, col_cl2 = st.columns(2)
-        fill_val = col_cl1.radio("Заполнение пустот", ["zeros", "mean"])
+        col_cl1, _ = st.columns(2)
+        fill_val = col_cl1.radio(
+            "Заполнение пустот",
+            fill_options,
+            index=fill_options.index(default_fill)
+        )
 
         st.write("Пороги ABC-анализа (%)")
-        abc_threshold = st.slider("Граница группы А", 0, 100, 80)
+        abc_threshold = st.slider("Граница группы А", 0, 100, lc.get('abc_threshold', 80) if lc else 80)
 
     if st.button("Выполнить расчёт", type="primary", use_container_width=True):
         current_config["abc_threshold"] = abc_threshold
@@ -75,15 +134,14 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
             results = an_service.run_analysis(strategy)
             st.session_state.last_results = results
             st.session_state.active_config = current_config
+            st.session_state.pop('loaded_config', None)
+            st.session_state.pop('loaded_dataset_id', None)
             st.success("Расчёт завершён успешно!")
         except Exception as ex:
             st.error(f"Ошибка: {ex}")
 
     if 'last_results' in st.session_state:
         res = st.session_state.last_results
-        full_table = res['analysis_table']
-
-
 
         st.divider()
         st.subheader("Аналитический дашборд")
@@ -91,13 +149,14 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
         tab1, tab2, tab3, tab4 = st.tabs(["Структура групп", "Прогноз и спрос", "Итоговая таблица", "Матрица ABC-XYZ"])
 
         with tab1:
-            fig_abc = px.pie(res['analysis_table'], names='abc_category', title="Распределение позиций по выручке (ABC)", hole=0.6)
+            fig_abc = px.pie(
+                res['analysis_table'], names='abc_category', 
+                title="Распределение позиций по выручке (ABC)", hole=0.6)
             st.plotly_chart(fig_abc, use_container_width=True)
 
         with tab2:
             st.write("#### Детализация прогноза")
             st.dataframe(res['forecast_report'], use_container_width=True)
-
             top_item = res['forecast_report'].iloc[0]['item_id']
             st.info(f"Рекомендация для {top_item}: Страховой запас - {res['forecast_report'].iloc[0]['safety_stock']} ед.")
 
@@ -106,8 +165,12 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
 
         with tab4:
             st.subheader("Тепловая карта распределения SKU")
-            matrix_data = res['analysis_table'].groupby(['abc_category', 'xyz_category']).size().reset_index(name='count')
-            pivot_matrix = matrix_data.pivot(index='abc_category', columns='xyz_category', values='count').fillna(0)
+            matrix_data = res['analysis_table'].groupby(
+                ['abc_category', 'xyz_category']
+            ).size().reset_index(name='count')
+            pivot_matrix = matrix_data.pivot(
+                index='abc_category', columns='xyz_category', values='count'
+            ).fillna(0)
             
             # Сортировка (для красоты)
             pivot_matrix = pivot_matrix.reindex(index=['A', 'B', 'C'], columns=['X', 'Y', 'Z'])
@@ -133,11 +196,11 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
                             project_id=active_project_id,
                             dataset_id=selected_ds_id,
                             scenario_id=2,
-                            config=current_config
+                            config=st.session_state.get('active_config', current_config)
                         )
 
                         an_service.save_analysis_result(us_id, res)
                         st.success(f"Результат успешно сохранен! ID сценария: {us_id}")
-                        st.balloons()
+                        # st.balloons()
                     except Exception as e:
                         st.error(f"Ошибка при сохранении: {e}")

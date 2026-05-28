@@ -47,7 +47,10 @@ if 'confirm_delete_project' not in st.session_state:
     st.session_state.confirm_delete_project = False
 if 'proj_form_key' not in st.session_state:
     st.session_state.proj_form_key = 0
-    
+if 'loaded_config' not in st.session_state:
+    st.session_state.loaded_config = None
+if 'loaded_dataset_id' not in st.session_state:
+    st.session_state.loaded_dataset_id = None
 
 def navigate_to(page_name):
     st.session_state.page = page_name
@@ -77,6 +80,9 @@ with st.sidebar:
             format_func=lambda x: project_titles[x]
         )
         st.session_state.current_project = selected_proj_id
+
+        if st.button("📁 Просмотр проекта", use_container_width=True):
+            navigate_to('project')
 
         with st.expander("⚙️ Управление проектом"):
             new_title = st.text_input(
@@ -203,3 +209,8 @@ if st.session_state.page == 'hub':
 elif st.session_state.page == 'inventory':
     from inventory_ui import render_inventory_ui
     render_inventory_ui(ds_service, an_service, user_id)
+
+elif st.session_state.page == 'project':
+    from project_ui import render_project_ui
+    project_title = project_titles.get(st.session_state.current_project, 'Проект')
+    render_project_ui(an_service, project_title)

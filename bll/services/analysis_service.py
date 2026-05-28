@@ -1,14 +1,13 @@
 import pandas as pd
-from typing import Dict, Any
-from dal.repositories import UserScenarioRepository, AnalysisResultRepository
-from bll.services.dataset_service import DatasetService
+from typing import Dict, Any, List
+from dal.repositories import UserScenarioRepository, AnalysisResultRepository, DatasetRepository
 from bll.scenario_interface import ScenarioInterface
 
 class AnalysisService:
-    def __init__(self, us_repo: UserScenarioRepository, result_repo: AnalysisResultRepository, dataset_service: DatasetService):
+    def __init__(self, us_repo: UserScenarioRepository, result_repo: AnalysisResultRepository, dataset_repo: DatasetRepository):
         self.us_repo = us_repo
         self.result_repo = result_repo
-        self.dataset_service = dataset_service
+        self.dataset_repo = dataset_repo
 
 
     def run_analysis(self, strategy: ScenarioInterface) -> Dict[str, Any]:
@@ -43,6 +42,31 @@ class AnalysisService:
         )
         self.result_repo.session.commit()
         return analysis_result_record.results_id
+    
+    def get_project_scenarios(self, project_id: int) -> List[Dict[str, Any]]:
+        user_scenarios = self.us_repo.get_all_by_project(project_id)
+        result = []
+        for us in user_scenarios:
+            dataset = self.dataset_repo.get_by_id(us.dataset_id)
+            result.append({
+                'user_scenario_id': us.user_scenario_id,
+                'scenario_id': us.scenario_id,
+                'dataset_id': us.dataset_id,
+                'dataset_name': dataset.file_name if dataset else '(Файл удалён)',
+                'config': us.config_json,
+                'updated_at': us.updated_at,
+            })
+
+        result.sort(key=lambda x: x['updated_at'], reverse=True)
+        return result
+    
+    def delete_user_scenario(self, user_scenario_id: int) -> None:
+        results = self.result_repo.get_all_by_user_scenario_id(user_scenario_id)
+        for r in results:
+            self.result_repo.delete(r.results_id)
+        self.us_repo.delete(user_scenario_id)
+        self.us_repo.session.commit()
+
     
     def delete_result(self, results_id: int) -> None:
         self.result_repo.delete(results_id)
