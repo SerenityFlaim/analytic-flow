@@ -9,7 +9,7 @@ from bll.services.dataset_service import DatasetService
 from bll.services.analysis_service import AnalysisService
 from bll.services.project_service import ProjectService
 from bll.services.auth_service import AuthService
-from auth_ui import render_auth_ui
+from ui.auth_ui import render_auth_ui
 
 st.set_page_config(page_title="AnalyticFlow", layout="wide")
 
@@ -207,10 +207,10 @@ if st.session_state.page == 'hub':
             st.button("Скоро", disabled=True, use_container_width=True)
 
 elif st.session_state.page == 'inventory':
-    from inventory_ui import render_inventory_ui
+    from ui.inventory_ui import render_inventory_ui
     render_inventory_ui(ds_service, an_service, user_id)
 
 elif st.session_state.page == 'project':
-    from project_ui import render_project_ui
+    from ui.project_ui import render_project_ui
     project_title = project_titles.get(st.session_state.current_project, 'Проект')
     render_project_ui(an_service, project_title)
