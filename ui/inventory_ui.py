@@ -8,6 +8,72 @@ def _col_index(cols, col_name):
         return cols.index(col_name)
     except ValueError:
         return 0
+    
+def _render_abc_chart(res: dict):
+    fig_abc = px.pie(
+        res['analysis_table'], names='abc_category', 
+        title="Распределение позиций по выручке (ABC)", hole=0.6)
+    st.plotly_chart(fig_abc, use_container_width=True)
+
+def _render_forecast(res: dict):
+    st.write("#### Детализация прогноза")
+    st.dataframe(res['forecast_report'], use_container_width=True)
+    top_item = res['forecast_report'].iloc[0]['item_id']
+    st.info(f"Рекомендация для {top_item}: Страховой запас - {res['forecast_report'].iloc[0]['safety_stock']} ед.")
+
+def _render_table(res: dict):
+    st.dataframe(res['analysis_table'], use_container_width=True)
+
+def _render_matrix(res: dict):
+    st.subheader("Тепловая карта распределения SKU")
+    matrix_data = res['analysis_table'].groupby(
+        ['abc_category', 'xyz_category']
+    ).size().reset_index(name='count')
+    pivot_matrix = matrix_data.pivot(
+        index='abc_category', columns='xyz_category', values='count'
+    ).fillna(0)
+    
+    # Сортировка (для красоты)
+    pivot_matrix = pivot_matrix.reindex(index=['A', 'B', 'C'], columns=['X', 'Y', 'Z'])
+    
+    fig_heatmap = px.imshow(
+        pivot_matrix,
+        text_auto=True,
+        aspect="auto",
+        color_continuous_scale='RdYlGn_r',
+        labels=dict(x="XYZ (Стабильность)", y="ABC (Важность)", color="Кол-во SKU")
+    )
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+def render_inventory_dashboard(res: dict, use_tabs: bool = True):
+    if use_tabs:
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "Структура групп", "Прогноз и спрос",
+            "Итоговая таблица", "Матрица ABC-XYZ"
+        ])
+        with tab1:
+            _render_abc_chart(res)
+        with tab2:
+            _render_forecast(res)
+        with tab3:
+            _render_table(res)
+        with tab4:
+            _render_matrix(res)
+
+    else:
+        st.subheader("Структура групп")
+        _render_abc_chart(res)
+        st.divider()
+        st.subheader("Прогноз и спрос")
+        _render_forecast(res)
+        st.divider()
+        st.subheader("Итоговая таблица")
+        _render_table(res)
+        st.divider()
+        st.subheader("Матрица ABC-XYZ")
+        _render_matrix(res)
+        st.divider()
+
 
 def render_inventory_ui(ds_service, an_service, user_id: int):
     st.title("📦 Настройка инвентарного анализа")
@@ -146,61 +212,25 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
         st.divider()
         st.subheader("Аналитический дашборд")
 
-        tab1, tab2, tab3, tab4 = st.tabs(["Структура групп", "Прогноз и спрос", "Итоговая таблица", "Матрица ABC-XYZ"])
+        render_inventory_dashboard(res)
 
-        with tab1:
-            fig_abc = px.pie(
-                res['analysis_table'], names='abc_category', 
-                title="Распределение позиций по выручке (ABC)", hole=0.6)
-            st.plotly_chart(fig_abc, use_container_width=True)
-
-        with tab2:
-            st.write("#### Детализация прогноза")
-            st.dataframe(res['forecast_report'], use_container_width=True)
-            top_item = res['forecast_report'].iloc[0]['item_id']
-            st.info(f"Рекомендация для {top_item}: Страховой запас - {res['forecast_report'].iloc[0]['safety_stock']} ед.")
-
-        with tab3:
-            st.dataframe(res['analysis_table'], use_container_width=True)
-
-        with tab4:
-            st.subheader("Тепловая карта распределения SKU")
-            matrix_data = res['analysis_table'].groupby(
-                ['abc_category', 'xyz_category']
-            ).size().reset_index(name='count')
-            pivot_matrix = matrix_data.pivot(
-                index='abc_category', columns='xyz_category', values='count'
-            ).fillna(0)
+        if st.button("Сохранить результат в историю проекта"):
+            active_project_id = st.session_state.get('current_project')
             
-            # Сортировка (для красоты)
-            pivot_matrix = pivot_matrix.reindex(index=['A', 'B', 'C'], columns=['X', 'Y', 'Z'])
-            
-            fig_heatmap = px.imshow(
-                pivot_matrix,
-                text_auto=True,
-                aspect="auto",
-                color_continuous_scale='RdYlGn_r',
-                labels=dict(x="XYZ (Стабильность)", y="ABC (Важность)", color="Кол-во SKU")
-            )
-            st.plotly_chart(fig_heatmap, use_container_width=True)
+            if active_project_id is None:
+                st.error("Ошибка: Не выбран активный проект! Выберите проект в боковой панели.")
+            else:
+                try:
+                    us_id = an_service.save_scenario_settings(
+                        user_id=user_id,
+                        project_id=active_project_id,
+                        dataset_id=selected_ds_id,
+                        scenario_id=2,
+                        config=st.session_state.get('active_config', current_config)
+                    )
 
-            if st.button("Сохранить результат в историю проекта"):
-                active_project_id = st.session_state.get('current_project')
-                
-                if active_project_id is None:
-                    st.error("Ошибка: Не выбран активный проект! Выберите проект в боковой панели.")
-                else:
-                    try:
-                        us_id = an_service.save_scenario_settings(
-                            user_id=user_id,
-                            project_id=active_project_id,
-                            dataset_id=selected_ds_id,
-                            scenario_id=2,
-                            config=st.session_state.get('active_config', current_config)
-                        )
-
-                        an_service.save_analysis_result(us_id, res)
-                        st.success(f"Результат успешно сохранен! ID сценария: {us_id}")
-                        # st.balloons()
-                    except Exception as e:
-                        st.error(f"Ошибка при сохранении: {e}")
+                    an_service.save_analysis_result(us_id, res)
+                    st.success(f"Результат успешно сохранен! ID сценария: {us_id}")
+                    # st.balloons()
+                except Exception as e:
+                    st.error(f"Ошибка при сохранении: {e}")
