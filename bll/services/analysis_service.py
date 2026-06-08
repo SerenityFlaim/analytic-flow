@@ -70,3 +70,17 @@ class AnalysisService:
     
     def delete_result(self, results_id: int) -> None:
         self.result_repo.delete(results_id)
+
+    def get_latest_result(self, user_scenario_id: int) -> pd.DataFrame:
+        results = self.result_repo.get_all_by_user_scenario_id(user_scenario_id)
+        if not results:
+            raise ValueError("Сохранённых результатов для этого сценария не найдено.")
+        latest = max(results, key=lambda r: r.created_at)
+        raw = latest.result_json
+        restored = {}
+        for key, value in raw.items():
+            if isinstance(value, list):
+                restored[key] = pd.DataFrame(value)
+            else:
+                restored[key] = value
+        return restored

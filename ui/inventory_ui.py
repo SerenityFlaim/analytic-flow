@@ -225,7 +225,7 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
                         user_id=user_id,
                         project_id=active_project_id,
                         dataset_id=selected_ds_id,
-                        scenario_id=2,
+                        scenario_id=2, #исправить хардкод
                         config=st.session_state.get('active_config', current_config)
                     )
 

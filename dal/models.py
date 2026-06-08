@@ -1,6 +1,6 @@
 import datetime
 from typing import List, Optional
-from sqlalchemy import ForeignKey, String, JSON, DateTime, Identity
+from sqlalchemy import ForeignKey, String, JSON, DateTime, Identity, func
 from sqlalchemy.dialects.postgresql import JSONB, TEXT
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -18,7 +18,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(512), nullable=False)
     surname: Mapped[str] = mapped_column(String(512), nullable=True)
     patronymic: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
 
 class Project(Base):
@@ -28,7 +28,7 @@ class Project(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"))
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(TEXT, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
 class Dataset(Base):
     __tablename__ = "datasets"
@@ -55,8 +55,8 @@ class UserScenario(Base):
     scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.scenario_id"), nullable=False)
     config_json: Mapped[dict] = mapped_column()
     updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default="now()",
-        onupdate=datetime.datetime.now
+        server_default=func.now(),
+        onupdate=func.now()
     )
 
 class AnalysisResult(Base):
@@ -66,4 +66,4 @@ class AnalysisResult(Base):
     user_scenario_id: Mapped[int] = mapped_column(ForeignKey("user_scenarios.user_scenario_id", ondelete="CASCADE"))
     result_json: Mapped[dict] = mapped_column()
     metrics_json: Mapped[dict] = mapped_column(nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default="now()")
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())

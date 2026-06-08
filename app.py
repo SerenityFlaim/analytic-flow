@@ -51,6 +51,10 @@ if 'loaded_config' not in st.session_state:
     st.session_state.loaded_config = None
 if 'loaded_dataset_id' not in st.session_state:
     st.session_state.loaded_dataset_id = None
+if 'report_scenario_id' not in st.session_state:
+    st.session_state.report_scenario_id = None
+if 'report_meta' not in st.session_state:
+    st.session_state.report_meta = {}
 
 def navigate_to(page_name):
     st.session_state.page = page_name
@@ -214,3 +218,7 @@ elif st.session_state.page == 'project':
     from ui.project_ui import render_project_ui
     project_title = project_titles.get(st.session_state.current_project, 'Проект')
     render_project_ui(an_service, project_title)
+
+elif st.session_state.page == 'report':
+    from ui.report_ui import render_report_ui
+    render_report_ui(an_service)

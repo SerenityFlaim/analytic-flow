@@ -62,6 +62,22 @@ def render_project_ui(an_service: AnalysisService, project_title: str):
 
                 st.write("")
 
+                if st.button(
+                    "📊 Просмотреть отчёт",
+                    key=f"report_{sc['user_scenario_id']}",
+                    use_container_width=True
+                ):
+                    st.session_state.report_scenario_id = sc['user_scenario_id']
+                    st.session_state.report_meta = {
+                        'scenario_id': sc['scenario_id'],
+                        'dataset_name': sc['dataset_name'],
+                        'updated_at': sc['updated_at'].strftime('%d.%m.%Y %H:%M')
+                    }
+                    st.session_state.page = 'report'
+                    st.rerun()
+
+                st.write("")
+
                 sc_id = sc['user_scenario_id']
                 if st.session_state.confirm_delete_scenario != sc_id:
                     if st.button(
