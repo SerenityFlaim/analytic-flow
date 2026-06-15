@@ -2,6 +2,7 @@ import pandas as pd
 from typing import Dict, Any, List
 from dal.repositories import UserScenarioRepository, AnalysisResultRepository, DatasetRepository
 from bll.scenario_interface import ScenarioInterface
+from utils.dt_util import _convert_numpy
 
 class AnalysisService:
     def __init__(self, us_repo: UserScenarioRepository, result_repo: AnalysisResultRepository, dataset_repo: DatasetRepository):
@@ -35,10 +36,13 @@ class AnalysisService:
             else:
                 processed_results[key] = value
 
+        processed_results = _convert_numpy(processed_results)
+        metrics = _convert_numpy(raw_results.get('summary'))
+
         analysis_result_record = self.result_repo.create(
             user_scenario_id=user_scenario_id,
             result_json=processed_results,
-            metrics_json=raw_results.get('summary')
+            metrics_json=metrics
         )
         self.result_repo.session.commit()
         return analysis_result_record.results_id

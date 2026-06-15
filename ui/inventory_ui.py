@@ -2,12 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from bll.inventory_scenario import InventoryScenario
-
-def _col_index(cols, col_name):
-    try:
-        return cols.index(col_name)
-    except ValueError:
-        return 0
+from utils.dt_util import _col_index
     
 def _render_abc_chart(res: dict):
     fig_abc = px.pie(

@@ -41,8 +41,8 @@ def render_report_ui(an_service: AnalysisService):
         st.info("Результаты для этого сценария не были сохранены. Попробуйте загрузить и запустить его заново.")
         return
     
-    if scenario_id in SCENARIO_REGISTRY.keys():
-        from ui.inventory_ui import render_inventory_dashboard
-        render_inventory_dashboard(results, use_tabs=False)
+    render_dashboard = meta.get('render_dashboard')
+    if render_dashboard:
+        render_dashboard(results, use_tabs=False)
     else:
         st.json(results.get('summary', {}))

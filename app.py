@@ -55,6 +55,8 @@ if 'report_scenario_id' not in st.session_state:
     st.session_state.report_scenario_id = None
 if 'report_meta' not in st.session_state:
     st.session_state.report_meta = {}
+if 'rfm_step' not in st.session_state:
+    st.session_state.rfm_step = 1
 
 def navigate_to(page_name):
     st.session_state.page = page_name
@@ -205,10 +207,11 @@ if st.session_state.page == 'hub':
 
     with col2:
         with st.container(border=True):
-            st.image("https://img.icons8.com/fluency/96/line-chart.png", width=80)
-            st.markdown("### 📊 Финансовый скоринг (В разработке)")
-            st.write("Анализ маржинальности, поиск точек роста прибыли и факторный анализ отклонений. Сценарий для финансового планирования.")
-            st.button("Скоро", disabled=True, use_container_width=True)
+            st.image("https://img.icons8.com/fluency/96/user-group-man-man.png", width=80)
+            st.markdown("### 👥 Клиентский анализ (RFM)")
+            st.write("RFM-сегментация клиентской базы, LTV-прогноз и персональные маркетинговые рекомендации.")
+            if st.button("Запустить сценарий", key="btn_rfm", use_container_width=True):
+                navigate_to('rfm')
 
 elif st.session_state.page == 'inventory':
     from ui.inventory_ui import render_inventory_ui
@@ -222,3 +225,7 @@ elif st.session_state.page == 'project':
 elif st.session_state.page == 'report':
     from ui.report_ui import render_report_ui
     render_report_ui(an_service)
+
+elif st.session_state.page == 'rfm':
+    from ui.rfm_ui import render_rfm_ui
+    render_rfm_ui(ds_service, an_service, user_id)
