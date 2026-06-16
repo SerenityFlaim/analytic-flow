@@ -1,4 +1,5 @@
 import streamlit as st
+from typing import Dict, Any, Optional
 from ui.inventory_ui import render_inventory_dashboard
 from ui.rfm_ui import render_rfm_dashboard
 
@@ -31,19 +32,52 @@ def render_rfm_config(config: dict):
     st.write(f"- **Маржинальность:** {ltv.get('margin_pct', '—')}%")
     st.write(f"- **Сегментов:** {len(segments)}: {', '.join(s['name'] for s in segments)}")
 
-SCENARIO_REGISTRY = {
-    2: {
+_SCENARIO_DEFINITIONS: list[tuple[str, Dict[str, Any]]] = [
+    ("Инвентарный анализ", {
         "name": "Инвентарный анализ",
         "icon": "📦",
         "page": "inventory",
         "render_config": render_inventory_config,
         "render_dashboard": render_inventory_dashboard,
-    },
-    3: {
+    }),
+    ("RFM-анализ", {
         "name": "RFM-анализ",
         "icon": "👥",
         "page": "rfm",
         "render_config": render_rfm_config,
         "render_dashboard": render_rfm_dashboard,
-    },
-}
+    }),
+]
+
+class ScenarioRegistry:
+    def __init__(self):
+        self._registry: Dict[int, Dict[str, Any]] = {}
+
+    def build(self, scenario_service) -> None:
+        self._registry = {}
+        for title, meta in _SCENARIO_DEFINITIONS:
+            try:
+                scenario_id = scenario_service.get_id_by_title(title)
+                self._registry[scenario_id] = meta
+            except ValueError as ex:
+                print(f"⚠️ ScenarioRegistry.build: {ex}")
+
+    def get(self, scenario_id: int, default=None) -> Optional[Dict[str, Any]]:
+        return self._registry.get(scenario_id, default)
+    
+    def get_id_by_page(self, page: str) -> Optional[int]:
+        for sid, meta in self._registry.items():
+            if meta['page'] == page:
+                return sid
+        return None
+        
+    def keys(self):
+        return self._registry.keys()
+    
+    def items(self):
+        return self._registry.items()
+    
+    def __contains__(self, item):
+        return item in self._registry
+    
+registry = ScenarioRegistry()

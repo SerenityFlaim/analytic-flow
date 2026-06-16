@@ -210,17 +210,19 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
         render_inventory_dashboard(res)
 
         if st.button("Сохранить результат в историю проекта"):
+            from bll.scenario_registry import registry
             active_project_id = st.session_state.get('current_project')
             
             if active_project_id is None:
                 st.error("Ошибка: Не выбран активный проект! Выберите проект в боковой панели.")
             else:
                 try:
+                    scenario_id = registry.get_id_by_page('inventory')
                     us_id = an_service.save_scenario_settings(
                         user_id=user_id,
                         project_id=active_project_id,
                         dataset_id=selected_ds_id,
-                        scenario_id=2, #исправить хардкод
+                        scenario_id=scenario_id,
                         config=st.session_state.get('active_config', current_config)
                     )
 

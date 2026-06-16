@@ -400,17 +400,19 @@ def _render_step4(ds_service, an_service, user_id: int):
         use_container_width=True,
         key='rfm_save'
     ):
+        from bll.scenario_registry import registry
         active_project_id = st.session_state.get('current_project')
         if active_project_id is None:
             st.error("Не выбран активный проект! Выберите проект в боковой панели.")
         else:
             try:
                 dataset_id = st.session_state.get('rfm_dataset_id')
+                scenario_id = registry.get_id_by_page('rfm')
                 us_id = an_service.save_scenario_settings(
                     user_id=user_id,
                     project_id=active_project_id,
                     dataset_id=dataset_id,
-                    scenario_id=3,
+                    scenario_id=scenario_id,
                     config=st.session_state.get('rfm_active_config', config)
                 )
                 an_service.save_analysis_result(us_id, res)

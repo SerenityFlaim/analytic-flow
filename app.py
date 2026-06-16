@@ -3,12 +3,14 @@ from database.connection import SessionLocal
 from dal.repositories import ( 
     DatasetRepository, UserScenarioRepository, 
     AnalysisResultRepository, ProjectRepository, 
-    UserRepository
+    UserRepository, ScenarioRepository
 )
 from bll.services.dataset_service import DatasetService
 from bll.services.analysis_service import AnalysisService
 from bll.services.project_service import ProjectService
 from bll.services.auth_service import AuthService
+from bll.services.scenario_service import ScenarioService
+from bll.scenario_registry import registry
 from ui.auth_ui import render_auth_ui
 
 st.set_page_config(page_title="AnalyticFlow", layout="wide")
@@ -22,11 +24,15 @@ def get_services():
     res_repo = AnalysisResultRepository(session)
     proj_repo = ProjectRepository(session)
     user_repo = UserRepository(session)
+    scenario_repo = ScenarioRepository(session)
 
     ds_service = DatasetService(ds_repo)
     an_service = AnalysisService(us_repo, res_repo, ds_repo)
     proj_service = ProjectService(proj_repo)
     auth_service = AuthService(user_repo)
+    scenario_service = ScenarioService(scenario_repo)
+
+    registry.build(scenario_service)
 
     return ds_service, an_service, proj_service, auth_service
 

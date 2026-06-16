@@ -1,8 +1,8 @@
 import streamlit as st
 from bll.services.analysis_service import AnalysisService
-from bll.scenario_registry import SCENARIO_REGISTRY
 
 def render_report_ui(an_service: AnalysisService):
+    from bll.scenario_registry import registry
     user_scenario_id = st.session_state.get('report_scenario_id')
 
     if user_scenario_id is None:
@@ -14,7 +14,7 @@ def render_report_ui(an_service: AnalysisService):
     
     report_meta = st.session_state.get('report_meta', {})
     scenario_id = report_meta.get('scenario_id')
-    meta = SCENARIO_REGISTRY.get(scenario_id, {
+    meta = registry.get(scenario_id, {
         "name": "Отчёт",
         "icon": "📊",
     })

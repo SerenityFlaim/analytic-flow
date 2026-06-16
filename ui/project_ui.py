@@ -1,13 +1,8 @@
 import streamlit as st
 from bll.services.analysis_service import AnalysisService
-from bll.scenario_registry import SCENARIO_REGISTRY
-
-SCENARIO_META = {
-    1: {"name": "Инвентарный анализ", "icon": "📦", "page": "inventory"},
-    2: {"name": "Инвентарный анализ", "icon": "📦", "page": "inventory"}
-}
 
 def render_project_ui(an_service: AnalysisService, project_title: str):
+    from bll.scenario_registry import registry
     st.title(f"📁 {project_title}")
     st.subheader("Сохранённые сценарии проекта")
 
@@ -25,7 +20,7 @@ def render_project_ui(an_service: AnalysisService, project_title: str):
         st.session_state.confirm_delete_scenario = None
 
     for sc in scenarios:
-        meta = SCENARIO_REGISTRY.get(sc['scenario_id'], {
+        meta = registry.get(sc['scenario_id'], {
             "name": "Неизвестный сценарий",
             "icon": "📊",
             "page": "hub",
