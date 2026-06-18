@@ -88,6 +88,11 @@ def render_inventory_ui(ds_service, an_service, user_id: int):
     ds_options = {d.dataset_id: d.file_name for d in datasets}
 
     ds_ids = list(ds_options.keys())
+
+    if not ds_ids:
+        st.warning("Нет загруженных датасетов. Загрузите файл в боковой панели.")
+        return
+
     default_ds_index = ds_ids.index(loaded_dataset_id) if (loaded_dataset_id and loaded_dataset_id in ds_ids) else 0
 
     selected_ds_id = st.selectbox(
