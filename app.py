@@ -63,6 +63,8 @@ if 'report_meta' not in st.session_state:
     st.session_state.report_meta = {}
 if 'rfm_step' not in st.session_state:
     st.session_state.rfm_step = 1
+if 'fin_step' not in st.session_state:
+    st.session_state.fin_step = 1
 
 def navigate_to(page_name):
     st.session_state.page = page_name
@@ -210,6 +212,12 @@ if st.session_state.page == 'hub':
                 #     st.error("Сначала выберите или создайте проект.")
                 # else:
                 #     navigate_to('inventory')
+        with st.container(border=True):
+            st.image("https://img.icons8.com/fluency/96/line-chart.png", width=80)
+            st.markdown("### 📊 Финансовый скоринг")
+            st.write("Скоринг дебиторской задолженности, расчёт Expected Loss и рекомендации по кредитным лимитам для контрагентов.")
+            if st.button("Запустить сценарий", key="btn_fin", use_container_width=True):
+                navigate_to('financial')
 
     with col2:
         with st.container(border=True):
@@ -235,3 +243,7 @@ elif st.session_state.page == 'report':
 elif st.session_state.page == 'rfm':
     from ui.rfm_ui import render_rfm_ui
     render_rfm_ui(ds_service, an_service, user_id)
+
+elif st.session_state.page == 'financial':
+    from ui.financial_ui import render_financial_ui
+    render_financial_ui(ds_service, an_service, user_id)
