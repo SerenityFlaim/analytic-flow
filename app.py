@@ -172,7 +172,7 @@ with st.sidebar:
     st.divider()
 
     st.write("### Загрузка данных")
-    uploaded_file = st.file_uploader("Выбраь CSV/Excel", type=["csv", "xlsx", "xls"])
+    uploaded_file = st.file_uploader("Выбрать CSV/Excel", type=["csv", "xlsx", "xls"])
     if uploaded_file:
         if st.button("Сохранить датасет"):
             with st.spinner("Загрузка..."):
