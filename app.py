@@ -208,10 +208,7 @@ if st.session_state.page == 'hub':
             st.write("Классификация запасов (ABC/XYZ), прогнозирование спроса и рассчёт страхового запаса. Сценарий для оптимизации склада.")
             if st.button("Запустить сценарий", key="btn_inv", use_container_width="True"):
                 navigate_to('inventory')
-                # if st.session_state.current_project is None:
-                #     st.error("Сначала выберите или создайте проект.")
-                # else:
-                #     navigate_to('inventory')
+
         with st.container(border=True):
             st.image("https://img.icons8.com/fluency/96/line-chart.png", width=80)
             st.markdown("### 📊 Финансовый скоринг")
