@@ -250,7 +250,9 @@ def _render_step3(lc: dict):
             st.session_state.fin_risk_classes = {
                 k: v.copy() for k, v in lc_risk_classes.items()
             }
-            st.session_state.fin_pd_values = lc_pd.copy() if lc_pd else {}
+            st.session_state.fin_pd_values = (
+                {k: round(v * 100) for k, v in lc_pd.items()} if lc_pd else {}
+            )
         else:
             st.session_state.fin_risk_classes = {
                 "A": {"min_score": 80, "max_score": 100, "strategy": "Отсрочка платежа", "max_days": 30},
