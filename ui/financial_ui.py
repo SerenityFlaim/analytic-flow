@@ -429,7 +429,7 @@ def _render_step5(ds_service, an_service, user_id: int):
                 st.error(f"Ошибка при сохранении: {e}")
 
 def render_financial_ui(ds_service, an_service, user_id: int):
-    st.title("💰 Финансовый скоринг дебиторской задолженности")
+    st.title("📊 Финансовый скоринг дебиторской задолженности")
 
     lc = st.session_state.get('loaded_config')
 

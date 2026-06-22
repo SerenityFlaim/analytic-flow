@@ -71,7 +71,7 @@ _SCENARIO_DEFINITIONS: list[tuple[str, Dict[str, Any]]] = [
     }),
     ("Финансовый скоринг", {
         "name": "Финансовый скоринг",
-        "icon": "💰",
+        "icon": "📊",
         "page": "financial",
         "render_config": render_financial_config,
         "render_dashboard": render_financial_dashboard,
